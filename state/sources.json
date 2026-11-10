@@ -1,0 +1,188 @@
+{
+  "acl4ssr_banad": {
+    "hash": "11277fc2436c6cf4c5d0541d4d3ba26b17c2df27034dbc0d2f7e2a271411d618",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 563
+  },
+  "acl4ssr_banprogramad": {
+    "hash": "83d25f7dea8bd7115aabe0d74e7344cd4c54d2a230994444c41eba30bc737663",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 1008
+  },
+  "acl4ssr_unban": {
+    "hash": "eaf82aed77e797ba5f08fe62cdf07a266a2b5ff3cf8d4072fcd21d022564d84d",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 31
+  },
+  "adrules_dns": {
+    "hash": "8c1381d10212f2e11178138b59b32673a5c2e4e3e3d2b11105dc03b53f280041",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 1625
+  },
+  "anthropic": {
+    "hash": "447545d1ecabcab2b179e924ad08fdbfa2b7c0ee538513f7837f92e19d7fa1c1",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 3
+  },
+  "antiad_pcdn": {
+    "hash": "6d74d6a7e23163519b1f56942e198b7ca034edab32124ee5d0014ffdee4302ef",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 30
+  },
+  "apple_ai": {
+    "hash": "a3ce177db0eef802f383ed5dfa88de899253ec535dff59acbf60ae99425e0fc0",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 19
+  },
+  "baidu": {
+    "hash": "761ca2b9bb5c9b16e5afb9bd0f3aafc67763daa70b499d6f9ca188ae2ac2417c",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 251
+  },
+  "bardai": {
+    "hash": "73e8b9f3efcc7360b016c26bababe4046bbecc3599948e239dced77a2ecb9dca",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 10
+  },
+  "bilibili": {
+    "hash": "d4d1ed0f89ca438da8b1787978239c0de202d5e218f8524295ee6baa738f0f78",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 127
+  },
+  "china": {
+    "hash": "6482d70d82d023a50ae7e9bfe7baf5f22a22b252092a0dacbb730d7bde1c03f2",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 63
+  },
+  "chinamedia": {
+    "hash": "e6688a3fc884b49324f460610cf8f3349594beb078f45fc149a3442aad3d27dc",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 440
+  },
+  "claude": {
+    "hash": "84bc8773d9a42c6d5d5abd025fa959fc36a2a5bb70a86cf77d45b373627a85de",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 3
+  },
+  "disney": {
+    "hash": "886ab2f3b79ab1bdcd593f80e8071409b3bda675924c813c1f50f979e895851d",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 173
+  },
+  "douyin": {
+    "hash": "790b2fac62718afa8a166c061b3031462a4dc5e4f758c45074138e8cf429d657",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 13
+  },
+  "easylist_china": {
+    "hash": "5a7a6f27d9dda0029e24fab0925c75b2a7043908bee10ad50c2e942a5cb06fd5",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 5800
+  },
+  "gemini": {
+    "hash": "b09b780a4e48615430961c0a7cfc820fc27f578bf0c2669d7a2e194cb647c040",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 13
+  },
+  "globalmedia": {
+    "hash": "ffc2b2819214a534b0a5f2e0f18b8153cc19d95c504368a4a8ce5c653f3907c9",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 1020
+  },
+  "hbo": {
+    "hash": "d9adb006cdbf22df1adad924809a4c429b54edceb937a378a262e10908b1c85c",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 49
+  },
+  "lan": {
+    "hash": "b343ab16026f7bd9e3fa733e3c7c1c9611b6b293be7d39ab68f11c6bb1ef2d0c",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 142
+  },
+  "netease": {
+    "hash": "7ed91c8005fb8dbc6425bf205afc6154c97c496b8cceb438cfa40801a7d2ca84",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 30
+  },
+  "netflix": {
+    "hash": "7a7de021e345411271cece634c87f231df12a869e177c885b45b76605b9028c9",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 1157
+  },
+  "openai": {
+    "hash": "67c535cf848955f412994d9735e05fcfebb3724e151ae0151026805ba54b1ccb",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 35
+  },
+  "peterlowe": {
+    "hash": "d8a9e7ba3266c5e9bd9ca2017ac098f4e6699dfcf4c1129d987733ab4bdc7cf8",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 3560
+  },
+  "spotify": {
+    "hash": "c3ee8c65ceba73360a901cf10609afb51a1f3b29483a5f73eef10100bd7c228c",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 30
+  },
+  "tiktok": {
+    "hash": "d92790b49e3c4107d5a215806c75fc0de6f4de01f9ce0b53e31a7400b6f00673",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 35
+  },
+  "uselibrary_pcdn": {
+    "hash": "6f3026f53b3b0fdb10c20bed1066ec192278465c65d234b262749046e47cc69d",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 33
+  },
+  "wangxin_pcdn": {
+    "hash": "d725c61ebfbfa5810e03fc1b87414c536613f0163904364923b8475be808eb04",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 26
+  },
+  "wechat": {
+    "hash": "f6288b3e87b1471ec3e60035203d98ab0b037ff088d4dc22b3c32ce822db9596",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 33
+  },
+  "xinggsf": {
+    "hash": "e36d480f83cec80d9bcca6959ba17c2c0297a5edddc0a3c5dfa27d05f06bfa86",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 86
+  },
+  "youtube": {
+    "hash": "4df6f02a3a583545fbf0e0aa55c22ba96642ff001fedd36e2ddcc9e76ccaa826",
+    "last_changed": "2026-11-10",
+    "last_checked": "2026-11-10",
+    "rule_count": 190
+  }
+}

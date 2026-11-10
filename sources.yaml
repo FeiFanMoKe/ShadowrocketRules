@@ -1,0 +1,211 @@
+# 规则源与 profile 配置。
+# 以 # 开头的行是注释，不会进入生成的 conf。
+
+general:
+  bypass_system: false
+  skip_proxy: 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, fe80::/10, fc00::/7, localhost, *.local, *.lan, *.internal, captive.apple.com, e.crashlytics.com
+  bypass_tun: 10.0.0.0/8,100.64.0.0/10,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.0.2.0/24,192.88.99.0/24,192.168.0.0/16,198.18.0.0/15,198.51.100.0/24,203.0.113.0/24,233.252.0.0/24,224.0.0.0/4,255.255.255.255/32,::1/128,::ffff:0:0/96,::ffff:0:0:0/96,64:ff9b::/96,64:ff9b:1::/48,100::/64,2001::/32,2001:20::/28,2001:db8::/32,2002::/16,3fff::/20,5f00::/16,fc00::/7,fe80::/10,ff00::/8
+
+# 广告源：lite 为默认；--ad-mode full 会额外加入 full_extra。
+ads:
+  lite:
+    - name: acl4ssr_banad
+      url: https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list
+    - name: acl4ssr_banprogramad
+      url: https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list
+    - name: adrules_dns
+      url: https://raw.githubusercontent.com/Cats-Team/AdRules/main/mod/rules/dns-rules.txt
+    - name: easylist_china
+      url: https://easylist-downloads.adblockplus.org/easylistchina.txt
+    - name: xinggsf
+      url: https://raw.githubusercontent.com/xinggsf/Adblock-Plus-Rule/master/rule.txt
+    - name: peterlowe
+      url: https://pgl.yoyo.org/adservers/serverlist.php?hostformat=adblockplus;showintro=0
+  full_extra:
+    - name: antiad
+      url: https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt
+    - name: easylist
+      url: https://easylist-downloads.adblockplus.org/easylist.txt
+
+# 上游白名单：ACL4SSR UnBan，构建时自动拉取并从广告 REJECT 中剔除。
+# PCDN（P2P CDN）域名：不是广告，但会占用上行带宽，默认 REJECT。
+pcdn:
+  - name: antiad_pcdn
+    url: https://cdn.jsdelivr.net/gh/privacy-protection-tools/anti-AD@master/discretion/pcdn.txt
+  - name: wangxin_pcdn
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Shadowrocket/WangXinKeJi/WangXinKeJi.list
+  - name: uselibrary_pcdn
+    url: https://cdn.jsdelivr.net/gh/uselibrary/PCDN@main/pcdn.list
+
+unban:
+  - name: acl4ssr_unban
+    url: https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list
+
+# AI 源：BM7 的 OpenAI / Claude / Anthropic / Gemini / BardAI。
+ai:
+  - name: openai
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/OpenAI/OpenAI.list
+  - name: claude
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Claude/Claude.list
+  - name: anthropic
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Anthropic/Anthropic.list
+  - name: gemini
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Gemini/Gemini.list
+  - name: bardai
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/BardAI/BardAI.list
+
+# Siri AI 源：公开的 Apple-AI 域名列表。
+siri_ai:
+  - name: apple_ai
+    url: https://raw.githubusercontent.com/RocM301/Apple-Rule/main/Apple-AI.list
+
+streaming:
+  - name: netflix
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Netflix/Netflix.list
+  - name: disney
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Disney/Disney.list
+  - name: hbo
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/HBO/HBO.list
+  - name: spotify
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Spotify/Spotify.list
+  - name: tiktok
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/TikTok/TikTok.list
+  - name: youtube
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/YouTube/YouTube.list
+  - name: globalmedia
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/GlobalMedia/GlobalMedia.list
+
+china:
+  - name: china
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/China/China.list
+  - name: chinamedia
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/ChinaMedia/ChinaMedia.list
+  - name: bilibili
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/BiliBili/BiliBili.list
+  - name: baidu
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Baidu/Baidu.list
+  - name: wechat
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/WeChat/WeChat.list
+  - name: douyin
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/DouYin/DouYin.list
+  - name: netease
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/NetEaseMusic/NetEaseMusic.list
+
+lan:
+  - name: lan
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Lan/Lan.list
+
+# AI 上游列表里过宽的第三方域名，过滤掉，避免 Stripe/Auth0/Sentry 等
+# 共享服务的流量被带进 AI 组。清空则完全照搬上游。
+ai_blocklist:
+  - auth0.com
+  - stripe.com
+  - algolia.net
+  - segment.io
+  - sentry.io
+  - intercom.io
+  - intercomcdn.com
+  - launchdarkly.com
+  - identrust.com
+  - observeit.net
+  - featuregates.org
+  - api.statsig.com
+  - events.statsigapi.net
+  - static.cloudflareinsights.com
+  - browser-intake-datadoghq.com
+  - cdn.usefathom.com
+
+# BM7 GlobalMedia 里有 DOMAIN-KEYWORD,anthropic / claude，
+# 不跳过会和 AI 组冲突，香港/新加坡的 Streaming 默认直连会拖累 Claude。
+streaming_keyword_blocklist:
+  - anthropic
+  - claude
+
+# Apple AI 上游列表里范围过大、会影响非 Siri 服务的条目。
+# 代码还会跳过所有 DOMAIN-KEYWORD（例如 siri），只保留 DOMAIN/DOMAIN-SUFFIX。
+siri_blocklist:
+  - ls.apple.com
+  - apps.mzstatic.com
+  - gateway.icloud.com
+  - wps.apple.com
+
+# Apple 统一走 Apple 组；大陆默认 PROXY，香港/新加坡默认 DIRECT。
+# push.apple.com 在 apple.com 下面，跟随 Apple 组，不单独写直连规则。
+apple_suffixes:
+  - apple.com
+  - icloud.com
+  - mzstatic.com
+  - apple-dns.net
+  - aaplimg.com
+  - cdn-apple.com
+  - apple-mapkit.com
+  - icloud-content.com
+  - me.com
+  - mac.com
+  - apple-cloudkit.com
+  - apple.com.cn
+  - apple.news
+
+# Google 统一按 profile 的 google_policy 处理：
+# 大陆 PROXY，香港/新加坡 DIRECT。
+# google 这个 TLD 覆盖 adtrafficquality.google，gstatic.com 覆盖 www.gstatic.com。
+google_suffixes:
+  - google
+  - google.com
+  - google.com.hk
+  - googleapis.com
+  - gstatic.com
+  - googleusercontent.com
+  - gmail.com
+  - googlevideo.com
+  - ytimg.com
+  - ggpht.com
+
+# GitHub 域名：大陆走代理，香港/新加坡直连。
+# githubusercontent.com 覆盖 raw./user-images./avatars./objects. 等图片资源。
+github_suffixes:
+  - github.com
+  - githubusercontent.com
+  - githubassets.com
+  - github.io
+
+profiles:
+  cn:
+    output: sr_cn.conf
+    title: 中国大陆
+    dns: https://dns.alidns.com/dns-query, https://doh.pub/dns-query
+    google_policy: PROXY
+    github_policy: PROXY
+    final: PROXY
+    groups:
+      AI: select,PROXY,DIRECT
+      SiriAI: select,PROXY,DIRECT
+      Streaming: select,PROXY,DIRECT
+      Apple: select,PROXY,DIRECT
+      BackCN: select,DIRECT,PROXY
+  hk:
+    output: sr_hk.conf
+    title: 中国香港
+    dns: https://cloudflare-dns.com/dns-query, https://dns.google/dns-query
+    google_policy: DIRECT
+    github_policy: DIRECT
+    final: DIRECT
+    groups:
+      AI: select,PROXY,DIRECT
+      SiriAI: select,PROXY,DIRECT
+      Streaming: select,DIRECT,PROXY
+      Apple: select,DIRECT,PROXY
+      BackCN: select,DIRECT,PROXY
+  sg:
+    output: sr_sg.conf
+    title: 新加坡 / 境外
+    dns: https://cloudflare-dns.com/dns-query, https://dns.google/dns-query
+    google_policy: DIRECT
+    github_policy: DIRECT
+    final: DIRECT
+    groups:
+      AI: select,DIRECT,PROXY
+      SiriAI: select,DIRECT,PROXY
+      Streaming: select,DIRECT,PROXY
+      Apple: select,DIRECT,PROXY
+      BackCN: select,DIRECT,PROXY
