@@ -1,4 +1,6 @@
 .venv/
 factory/cache/
+dist/
 __pycache__/
 *.pyc
+*.conf

@@ -11,7 +11,6 @@
 所有配置共同点：
 
 - 广告规则自动从公开上游拉取并去重；
-- 不维护手工规则列表；
 - 每天北京时间 07:00 自动构建；
 - 仅在 **港版 iPhone + 港区 Apple ID** 上测试过。
 
@@ -29,11 +28,6 @@
 | 香港 | `https://feifanmoke.github.io/ShadowrocketRules/sr_hk.conf` | `https://raw.githubusercontent.com/FeiFanMoKe/ShadowrocketRules/release/sr_hk.conf` |
 | 新加坡 | `https://feifanmoke.github.io/ShadowrocketRules/sr_sg.conf` | `https://raw.githubusercontent.com/FeiFanMoKe/ShadowrocketRules/release/sr_sg.conf` |
 
-仓库内文件：
-
-- [sr_cn.conf](./sr_cn.conf)
-- [sr_hk.conf](./sr_hk.conf)
-- [sr_sg.conf](./sr_sg.conf)
 
 ---
 
@@ -53,17 +47,6 @@
 3. 如果没有「更新」按钮，删除旧配置后重新添加 URL。
 4. 更新完成后，断开并重新连接一次 Shadowrocket。
 
-### 自动更新（iOS 快捷指令）
-
-1. 打开「快捷指令」，新建一个快捷指令。
-2. 添加操作「打开 URL」，填入你要使用的配置地址。
-3. 进入「自动化」→ 右上角 `+` →「创建个人自动化」→「特定时间」。
-4. 时间设为每天 **08:05**（构建在 07:00 完成），点击下一步。
-5. 添加操作「运行快捷指令」，选择刚才创建的快捷指令。
-6. 关闭「运行前询问」，点击完成。
-7. 首次运行时允许打开 Shadowrocket，按提示更新配置。
-
-> 在中国大陆网络下，GitHub 地址可能无法直接访问。可以先用代理完成一次更新，或者把配置地址换成你自己可访问的镜像地址。
 
 ---
 
@@ -98,9 +81,33 @@
 | `Apple` | `PROXY` | `DIRECT` | `DIRECT` |
 | `BackCN` | `DIRECT` | `DIRECT` | `DIRECT` |
 
-香港的 `SiriAI` 主要给 Siri 的 ChatGPT 集成使用。如果你的 Siri 不使用 ChatGPT 集成，可以把 `SiriAI` 切换到 `DIRECT`。
+### 按场景设置
 
-需要访问大陆专属内容时，把 `BackCN` 切到 `PROXY`，并在 Shadowrocket 首页选中大陆节点。默认 `DIRECT`，不切换就保持直连。
+一般不需要改分组，默认值已经对应三份配置：
+
+| 使用场景 | 建议 |
+|---|---|
+| 大陆 | `AI`、`SiriAI`、`Apple`、`Streaming` 用 `PROXY`；`BackCN` 用 `DIRECT` |
+| 香港 | `AI`、`SiriAI` 用 `PROXY`；`Apple`、`Streaming` 用 `DIRECT`；`BackCN` 用 `DIRECT` |
+| 新加坡 | 全部用 `DIRECT` |
+
+如果只想调整某个服务，按下面找分组：
+
+| 想调整的服务 | 对应分组 |
+|---|---|
+| OpenAI / Claude / Gemini | `AI` |
+| Siri / Apple Intelligence | `SiriAI` |
+| Netflix / YouTube / Disney+ / Spotify | `Streaming` |
+| App Store / iCloud / 系统服务 | `Apple` |
+| 国内 App / 网站 | `BackCN` |
+
+`PROXY` 不是节点名，而是“使用 Shadowrocket 首页当前选中的节点”；`DIRECT` 是直连。节点在首页切换，不需要改配置。
+
+例子：
+
+- 在香港希望 Netflix 走代理：把 `Streaming` 切到 `PROXY`；
+- 希望 Siri 直连：把 `SiriAI` 切到 `DIRECT`；
+- 需要回国内节点：把 `BackCN` 切到 `PROXY`，并在首页选中大陆节点。默认 `DIRECT`，不切换就保持直连。
 
 ---
 
@@ -179,11 +186,10 @@
 - 广告没有拦住；
 - 正常网站或 App 被误杀；
 
-请直接到对应上游反馈。上游修复后，第二天的自动构建会自动带上，我这边也会受益。
+请直接到对应上游反馈。上游修复后，第二天的自动构建会自动带上。
 
 只有「规则生成、去重、配置渲染」本身有问题时，才需要在本仓库开 issue。本项目不接受手工广告/PCDN 规则 PR。
 
-> 上游列表也会拦截部分非广告域名，例如 DoH（`doh.dns.apple.com`）、HTTPDNS（`httpdns.huaweicloud.com`）和崩溃上报（`crashlytics.com`）。本项目按上游原样保留，不做本地例外；如果实际使用受影响，请开 issue 分析。
 
 ### PCDN
 
