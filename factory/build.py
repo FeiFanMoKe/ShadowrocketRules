@@ -32,6 +32,7 @@ CACHE = os.path.join(ROOT, "factory", "cache")
 CONFIG = os.path.join(ROOT, "sources.yaml")
 STATE = os.path.join(ROOT, "state", "sources.json")
 MAX_STALE_DAYS = 730
+FETCH_STATUS = {}
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -55,6 +56,7 @@ def fetch(name, url):
                 raise ValueError("empty response")
             with open(path, "w", encoding="utf-8") as f:
                 f.write(text)
+            FETCH_STATUS[name] = {"from_cache": False}
             print("  fetched %-24s %8d bytes" % (name, len(text)))
             return text
         except Exception as exc:
@@ -62,9 +64,15 @@ def fetch(name, url):
             if attempt < 2:
                 time.sleep(1 + attempt)
     if os.path.exists(path):
+        FETCH_STATUS[name] = {"from_cache": True, "error": str(last_error)}
         print("  WARN  %-24s fetch failed (%s), using cache" % (name, last_error))
         with open(path, encoding="utf-8") as f:
             return f.read()
+    FETCH_STATUS[name] = {
+        "from_cache": False,
+        "skipped": True,
+        "error": str(last_error),
+    }
     print("  WARN  %-24s fetch failed (%s), skipped" % (name, last_error))
     return ""
 
@@ -115,8 +123,13 @@ def extract_abp_value(raw):
         if "/" in host or "*" in host or "?" in host or "*" in rest or "?" in rest:
             return None
     elif value.startswith("|http://") or value.startswith("|https://"):
-        match = re.match(r"https?://([^/^|$]+)", value.lstrip("|"))
-        value = match.group(1) if match else ""
+        match = re.match(r"https?://([^/^|$]+)(.*)$", value.lstrip("|"))
+        if not match:
+            return None
+        host, rest = match.group(1), match.group(2)
+        if "/" in rest or "*" in rest or "?" in rest:
+            return None
+        value = host
     else:
         host = value.split("^", 1)[0].split("|", 1)[0]
         rest = value[len(host):]
@@ -224,22 +237,27 @@ def parse_sr(text):
 
 def parse_ad_source(text):
     domains, ips = parse_clash(text)
-    if domains or ips:
-        return domains, ips, set()
-    return parse_abp(text)
+    abp_domains, abp_ips, exceptions = parse_abp(text)
+    return domains | abp_domains, ips | abp_ips, exceptions
 
 
 def parse_rule_source(text):
     rules = parse_sr(text)
-    if rules:
-        return rules
     domains, ips, _ = parse_abp(text)
-    rules = [("DOMAIN-SUFFIX", domain, []) for domain in sorted(domains)]
-    rules += [
+    abp_rules = [("DOMAIN-SUFFIX", domain, []) for domain in sorted(domains)]
+    abp_rules += [
         ("IP-CIDR6" if ":" in ip else "IP-CIDR", ip, ["no-resolve"])
         for ip in sorted(ips)
     ]
-    return rules
+    combined = []
+    seen = set()
+    for kind, payload, options in rules + abp_rules:
+        key = (kind, payload)
+        if key in seen:
+            continue
+        seen.add(key)
+        combined.append((kind, payload, options))
+    return combined
 
 
 def covered_by(domain, parents):
@@ -303,6 +321,13 @@ def record_source(state, name, items):
                 entry["stale_days"] = days
             else:
                 entry.pop("stale_days", None)
+    status = FETCH_STATUS.get(name, {})
+    if status.get("from_cache"):
+        entry["from_cache"] = True
+        entry["fetch_error"] = status.get("error", "")
+    else:
+        entry.pop("from_cache", None)
+        entry.pop("fetch_error", None)
     state[name] = entry
 
 
@@ -528,6 +553,14 @@ def main():
         print("  %-12s %7d lines  %8d bytes  %s" % (profile["title"], count, size, path))
 
     save_state(state)
+
+    cached = [name for name, status in FETCH_STATUS.items() if status.get("from_cache")]
+    skipped = [name for name, status in FETCH_STATUS.items() if status.get("skipped")]
+    if cached:
+        print("Used cache for: %s" % ", ".join(sorted(cached)))
+    if skipped:
+        print("Skipped sources: %s" % ", ".join(sorted(skipped)))
+
     print("Done in %.1fs" % (time.time() - started))
 
 

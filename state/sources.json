@@ -90,10 +90,10 @@
     "rule_count": 13
   },
   "easylist_china": {
-    "hash": "5a7a6f27d9dda0029e24fab0925c75b2a7043908bee10ad50c2e942a5cb06fd5",
+    "hash": "6df3ea69fc348c40bb573671993311084da2825c6e13fea352ec20e4ae24c1a0",
     "last_changed": "2026-11-10",
     "last_checked": "2026-11-10",
-    "rule_count": 5800
+    "rule_count": 5802
   },
   "gemini": {
     "hash": "b09b780a4e48615430961c0a7cfc820fc27f578bf0c2669d7a2e194cb647c040",
@@ -174,10 +174,10 @@
     "rule_count": 33
   },
   "xinggsf": {
-    "hash": "e36d480f83cec80d9bcca6959ba17c2c0297a5edddc0a3c5dfa27d05f06bfa86",
+    "hash": "857a0dfe2c7601e89493c7d0efa86d7810e8f48948d267cbe8b0115ac8e6eb7d",
     "last_changed": "2026-11-10",
     "last_checked": "2026-11-10",
-    "rule_count": 86
+    "rule_count": 84
   },
   "youtube": {
     "hash": "4df6f02a3a583545fbf0e0aa55c22ba96642ff001fedd36e2ddcc9e76ccaa826",

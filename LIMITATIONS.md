@@ -109,7 +109,7 @@ PCDN 源：
 
 - `STALE` 只是日志输出，不会自动开 issue、发邮件或阻止发布；
 - 拉取失败时会重试 3 次，仍失败则用 `factory/cache/` 缓存；
-- 状态文件里没有单独记录 `FETCH_FAILED`；
+- 状态文件会记录 `from_cache` 和 `fetch_error`；被完全跳过、没有缓存的源不会写入状态；
 - CI 第一次运行时没有缓存，如果 GitHub/jsDelivr 拉取失败，可能直接失败或规则缺失；
 - 没有为每个类别配置 primary/secondary 自动切换；
 - 没有检查源仓库本身是否归档/停更。
