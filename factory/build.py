@@ -760,6 +760,10 @@ def main():
         print("  %-12s %7d lines  %8d bytes  %s" % (profile["title"], count, size, path))
 
     save_state(state)
+    os.makedirs(CACHE, exist_ok=True)
+    with open(os.path.join(CACHE, "build_status.json"), "w", encoding="utf-8") as f:
+        json.dump(FETCH_STATUS, f, ensure_ascii=False, indent=2, sort_keys=True)
+        f.write("\n")
 
     cached = [name for name, status in FETCH_STATUS.items() if status.get("from_cache")]
     skipped = [name for name, status in FETCH_STATUS.items() if status.get("skipped")]

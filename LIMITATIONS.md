@@ -217,7 +217,7 @@ DOMAIN-KEYWORD,openai,AI
 - 没有完整的路由模拟测试；
 - 不会验证“某个域名最终命中哪个策略”；
 - 不会发现规则顺序错误、`skip-proxy` 覆盖规则、组默认值错误；
-- 构建前检查只覆盖 AI/SiriAI/Apple/广告/总规则数，没有检查 Streaming/China/Google/GitHub；源失败时可能仍通过并发布残缺配置；
+- 构建前检查会校验 Streaming/BackCN 规则数和 canary 域名；`build_status.json` 中 `skipped` 的源会直接失败，`from_cache` 的源只警告；
 - 不会验证真实广告拦截率、误杀率；
 - 只在港版 iPhone + 港区 Apple ID 上做过人工验证；
 - 没有在大陆/新加坡设备、Android、Clash、Surge 等其他客户端上测试；
@@ -242,7 +242,7 @@ DOMAIN-KEYWORD,openai,AI
 - `state` 提交使用 `git push origin HEAD:main`，并且 `continue-on-error: true`；如果 `main` 有分支保护，状态可能提交失败，下一次运行的新鲜度判断会不准确；
 - `STALE` 只出现在日志里，没有自动通知；
 - `release` 分支每次构建都会重建，不能手动修改；
-- 没有通知渠道（邮件、Telegram、Webhook）；
+- 构建失败会自动创建 GitHub issue，但每次失败都会新建一条，没有去重；
 - 没有构建失败自动重试/自动回滚到上一次成功配置；
 - GitHub Pages 首次启用需要手动操作，workflow 不能替你打开。
 

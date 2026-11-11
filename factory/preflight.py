@@ -5,17 +5,30 @@
 This is a build guard, not the full routing test suite.
 """
 
+import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIGS = ("sr_cn.conf", "sr_hk.conf", "sr_sg.conf")
+STATUS_PATH = os.path.join(ROOT, "factory", "cache", "build_status.json")
 REQUIRED_GROUPS = {"AI", "SiriAI", "Streaming", "Apple", "BackCN"}
 MIN_RULES = 10000
 MIN_AD_REJECTS = 5000
 MIN_AI_RULES = 20
 MIN_SIRI_RULES = 5
 MIN_APPLE_RULES = 10
+MIN_STREAMING_RULES = 100
+MIN_BACKCN_RULES = 100
+CANARIES = (
+    ("DOMAIN-SUFFIX", "netflix.com", "Streaming"),
+    ("DOMAIN-SUFFIX", "weixin.qq.com", "BackCN"),
+    ("DOMAIN-SUFFIX", "baidu.com", "BackCN"),
+    ("DOMAIN-SUFFIX", "google.com", None),
+    ("DOMAIN-SUFFIX", "gstatic.com", None),
+    ("DOMAIN-SUFFIX", "github.com", None),
+    ("DOMAIN-SUFFIX", "githubusercontent.com", None),
+)
 
 
 def load_groups(lines):
@@ -66,7 +79,14 @@ def validate(path):
 
     final_positions = []
     ad_rejects = 0
-    policy_counts = {"AI": 0, "SiriAI": 0, "Streaming": 0, "Apple": 0}
+    policy_counts = {
+        "AI": 0,
+        "SiriAI": 0,
+        "Streaming": 0,
+        "Apple": 0,
+        "BackCN": 0,
+    }
+    rule_targets = {}
     for index, rule in enumerate(rules):
         parts = [part.strip() for part in rule.split(",")]
         if parts[0] == "FINAL":
@@ -82,6 +102,7 @@ def validate(path):
             target = parts[2]
             if target == "REJECT":
                 ad_rejects += 1
+            rule_targets.setdefault((parts[0], parts[1]), target)
         if target not in allowed:
             errors.append("unknown policy %r in %s" % (target, rule))
         if target in policy_counts:
@@ -93,6 +114,26 @@ def validate(path):
         errors.append("too few SiriAI rules: %d" % policy_counts["SiriAI"])
     if policy_counts["Apple"] < MIN_APPLE_RULES:
         errors.append("too few Apple rules: %d" % policy_counts["Apple"])
+    if policy_counts["Streaming"] < MIN_STREAMING_RULES:
+        errors.append(
+            "too few Streaming rules: %d < %d"
+            % (policy_counts["Streaming"], MIN_STREAMING_RULES)
+        )
+    if policy_counts["BackCN"] < MIN_BACKCN_RULES:
+        errors.append(
+            "too few BackCN rules: %d < %d"
+            % (policy_counts["BackCN"], MIN_BACKCN_RULES)
+        )
+
+    for kind, payload, expected in CANARIES:
+        target = rule_targets.get((kind, payload))
+        if target is None:
+            errors.append("missing canary rule: %s,%s" % (kind, payload))
+        elif expected is not None and target != expected:
+            errors.append(
+                "canary rule %s,%s has policy %s, expected %s"
+                % (kind, payload, target, expected)
+            )
 
     if len(final_positions) != 1:
         errors.append("expected exactly one FINAL, got %d" % len(final_positions))
@@ -108,6 +149,30 @@ def validate(path):
 
 def main():
     failed = False
+
+    if not os.path.exists(STATUS_PATH):
+        print("FAIL build status: missing (run factory/build.py first)")
+        failed = True
+    else:
+        try:
+            with open(STATUS_PATH, encoding="utf-8") as f:
+                status = json.load(f)
+        except (OSError, ValueError) as exc:
+            print("FAIL build status: %s" % exc)
+            failed = True
+        else:
+            skipped = [
+                name for name, info in status.items() if info.get("skipped")
+            ]
+            cached = [
+                name for name, info in status.items() if info.get("from_cache")
+            ]
+            if skipped:
+                print("FAIL skipped sources: %s" % ", ".join(sorted(skipped)))
+                failed = True
+            if cached:
+                print("WARN cached sources: %s" % ", ".join(sorted(cached)))
+
     for name in CONFIGS:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
