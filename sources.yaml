@@ -169,6 +169,20 @@ github_suffixes:
   - githubassets.com
   - github.io
 
+# 冲突优先级，从高到低：
+# 同一个域名/IP 同时出现在多个类别时，保留高优先级规则，删除低优先级规则。
+# 顺序可以按需调整；未知名称会被忽略，缺失类别会追加到末尾。
+priority:
+  - ads
+  - lan
+  - ai
+  - siri
+  - streaming
+  - apple
+  - google
+  - github
+  - china
+
 profiles:
   cn:
     output: sr_cn.conf

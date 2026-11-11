@@ -109,6 +109,21 @@
 - 希望 Siri 直连：把 `SiriAI` 切到 `DIRECT`；
 - 需要回国内节点：把 `BackCN` 切到 `PROXY`，并在首页选中大陆节点。默认 `DIRECT`，不切换就保持直连。
 
+### 冲突优先级
+
+同一个域名/IP 同时出现在多个类别时，构建会按下面的顺序保留高优先级规则、删除低优先级规则：
+
+```text
+Ads/PCDN > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN > FINAL
+```
+
+- Ads/PCDN 最高，`peiluyou.com` 这类域名会保留 `REJECT`；
+- LAN 只影响本地网络；被 Ads/PCDN 覆盖的 LAN 规则会删除；
+- AI/SiriAI/Streaming/Apple/Google/GitHub 是服务类别，高于 BackCN/China；
+- 顺序在 `sources.yaml` 的 `priority` 中配置，以后出现冲突直接调整这个列表即可。
+
+> 当前优先级过滤只处理 `DOMAIN`、`DOMAIN-SUFFIX`、`IP-CIDR`；`DOMAIN-KEYWORD` 和 `USER-AGENT` 不参与覆盖判断。
+
 ---
 
 ## 分流逻辑
@@ -201,7 +216,7 @@ PCDN（P2P CDN）不是广告，但会把设备当作内容分发节点，占用
 | [blackmatrix7 WangXinKeJi](https://github.com/blackmatrix7/ios_rule_script/tree/master/rule/Shadowrocket/WangXinKeJi) | 网心科技/迅雷 PCDN |
 | [uselibrary/PCDN](https://github.com/uselibrary/PCDN) | 通用 CDN、视频平台 P2P |
 
-例如 `kuiniuca.com`（网心科技/星域 CDN）会命中 `DOMAIN-SUFFIX,kuiniuca.com,REJECT`。如果你依赖的某个服务因此受影响，请到对应上游反馈，或者从 `sources.yaml` 的 `pcdn` 列表里移除对应源。
+例如 `kuiniuca.com`（网心科技/星域 CDN）会命中 `DOMAIN-SUFFIX,kuiniuca.com,REJECT`。如果同一个域名同时出现在 Ads/PCDN 和其他分组（Lan、AI、Streaming、Apple、Google、China 等）里，构建时会删除其他分组里的规则，只保留 `REJECT`（例如 `peiluyou.com`）。如果你依赖的某个服务因此受影响，请到对应上游反馈，或者从 `sources.yaml` 的 `pcdn` 列表里移除对应源。
 
 ---
 

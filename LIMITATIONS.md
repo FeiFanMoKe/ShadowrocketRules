@@ -48,7 +48,7 @@ ABP 规则里带以下内容的，会整条跳过：
 
 ### 1.3 广告/PCDN 列表按上游原样保留
 
-没有 `ad_guard`，也没有 `manual_*.txt`。上游列表里的域名会按原样进入最终配置。
+没有本地广告白名单，也没有 `manual_*.txt`。上游列表里的域名会按原样进入最终配置。
 
 当前配置里真实存在的非广告类 REJECT 例子：
 
@@ -95,7 +95,8 @@ PCDN 源：
 - 没有基于 UDP 端口/流量特征的 PCDN 检测（例如 UDP 3478、异常高位端口）；
 - PCDN 厂商和域名会变，未收录的新域名需要等上游更新；
 - `WangXinKeJi` 最后更新是 2025-06，目前还没到 730 天，但后面可能会被标记 `STALE`；
-- PCDN 拦截可能影响依赖 PCDN 加速的服务，本地没有白名单。
+- PCDN 拦截可能影响依赖 PCDN 加速的服务，本地没有白名单；
+- 构建时会按 `priority` 从高到低删除被高优先级规则覆盖的低优先级规则；Ads/PCDN 最高，且渲染在 LAN 前面，所以 LAN 父域不会遮蔽 PCDN 子域。
 
 ### 1.6 上游依赖与新鲜度检查
 
@@ -178,10 +179,10 @@ DOMAIN-KEYWORD,openai,AI
 **局限：**
 
 - 关键词匹配范围大，可能把非目标域名也带进对应组；
-- 规则按从上到下匹配，广告 REJECT 在最前，其次是 SiriAI、AI、Streaming、Apple、Google、GitHub、China；
-- 同名域名同时出现在多个组时，先匹配的生效。例如 `googlevideo.com` 同时出现在 `Streaming` 和 `Google` 里，`Streaming` 在前；
-- 如果在大陆配置里把 `Streaming` 切成 `DIRECT`，`googlevideo.com` 会走直连，后面的 `Google=PROXY` 不会覆盖它；
-- 没有自动冲突检测，只有构建前的基础检查。
+- 规则按优先级渲染：Ads/PCDN > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN；
+- 构建会按 `sources.yaml` 的 `priority` 删除被高优先级覆盖的同名规则，例如 `googlevideo.com` 属于 Streaming，Google 里的同名规则会被删除；
+- 优先级过滤只处理 `DOMAIN`、`DOMAIN-SUFFIX`、`IP-CIDR`；`DOMAIN-KEYWORD`、`USER-AGENT` 不参与覆盖判断，也不在精确冲突报告里；
+- 冲突报告只覆盖完全相同的 `(type,payload)`，按策略名统计；正常情况下优先级处理完后报告为空。
 
 ### 2.5 没有 `RULE-SET` / 全内联
 
@@ -216,6 +217,7 @@ DOMAIN-KEYWORD,openai,AI
 - 没有完整的路由模拟测试；
 - 不会验证“某个域名最终命中哪个策略”；
 - 不会发现规则顺序错误、`skip-proxy` 覆盖规则、组默认值错误；
+- 构建前检查只覆盖 AI/SiriAI/Apple/广告/总规则数，没有检查 Streaming/China/Google/GitHub；源失败时可能仍通过并发布残缺配置；
 - 不会验证真实广告拦截率、误杀率；
 - 只在港版 iPhone + 港区 Apple ID 上做过人工验证；
 - 没有在大陆/新加坡设备、Android、Clash、Surge 等其他客户端上测试；
@@ -251,7 +253,7 @@ DOMAIN-KEYWORD,openai,AI
 | 未做事项 | 当前做法 | 局限 | 什么时候需要补 |
 |---|---|---|---|
 | 路径级广告拦截 | 跳过带路径/`$`/`*`/`?` 的规则 | 部分广告漏拦 | 确实需要时，加 `URL-REGEX` + MITM |
-| 广告白名单 / `ad_guard` | 无 | 上游误杀会直接生效 | 遇到关键误杀且上游不修时 |
+| 广告白名单 / manual | 无 | 上游误杀会直接生效 | 遇到关键误杀且上游不修时 |
 | 路由模拟测试 | 只有构建前检查 | 规则顺序/策略错误发现不了 | 配置复杂到人工验证不够时 |
 | 源失败自动切换 | 重试 3 次 + 缓存 | 首次运行或缓存缺失会失败 | 有多个可靠镜像/备用源时 |
 | 新鲜度通知 | 日志打印 `STALE` | 不主动提醒 | 想自动开 issue/发消息时 |
@@ -264,7 +266,7 @@ DOMAIN-KEYWORD,openai,AI
 ## 6. 当前最值得优先补的三件事
 
 1. **路由模拟测试**：至少覆盖 AI、SiriAI、Apple、Google、GitHub、广告 REJECT、`FINAL` 的预期策略，防止规则顺序/`skip-proxy` 回归。
-2. **关键误杀监控**：即使不做 `ad_guard`，也可以定期扫描最终 REJECT 列表里是否出现 `apple.com`、`google.com`、`cloudflare.com`、`github.com` 等关键域，发现时报警。
+2. **关键误杀监控**：即使没有本地白名单，也可以定期扫描最终 REJECT 列表里是否出现 `apple.com`、`google.com`、`cloudflare.com`、`github.com` 等关键域，发现时报警。
 3. **源失败通知**：`STALE` 和 `FETCH_FAILED` 目前只在日志里，最好能自动开 issue 或发消息。
 
 ---

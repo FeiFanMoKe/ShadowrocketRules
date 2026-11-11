@@ -33,6 +33,18 @@ CONFIG = os.path.join(ROOT, "sources.yaml")
 STATE = os.path.join(ROOT, "state", "sources.json")
 MAX_STALE_DAYS = 730
 FETCH_STATUS = {}
+OFFLINE = False
+DEFAULT_PRIORITY = [
+    "ads",
+    "lan",
+    "ai",
+    "siri",
+    "streaming",
+    "apple",
+    "google",
+    "github",
+    "china",
+]
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -46,6 +58,19 @@ DOM_RE = re.compile(
 def fetch(name, url):
     os.makedirs(CACHE, exist_ok=True)
     path = os.path.join(CACHE, name + ".txt")
+    if OFFLINE:
+        if os.path.exists(path):
+            FETCH_STATUS[name] = {"from_cache": True, "error": "offline"}
+            print("  cache   %-24s offline" % name)
+            with open(path, encoding="utf-8") as f:
+                return f.read()
+        FETCH_STATUS[name] = {
+            "from_cache": False,
+            "skipped": True,
+            "error": "offline",
+        }
+        print("  WARN    %-24s offline, no cache" % name)
+        return ""
     last_error = None
     for attempt in range(3):
         try:
@@ -268,6 +293,95 @@ def covered_by(domain, parents):
     return False
 
 
+def has_parent_domain(domain, parents):
+    parts = domain.split(".")
+    for index in range(1, len(parts) - 1):
+        if ".".join(parts[index:]) in parents:
+            return True
+    return False
+
+
+def collapse_subdomains(domains):
+    ordered = sorted(set(domains), key=lambda d: (d.count("."), len(d)))
+    kept = set()
+    removed = 0
+    for domain in ordered:
+        if has_parent_domain(domain, kept):
+            removed += 1
+            continue
+        kept.add(domain)
+    return kept, removed
+
+
+def collapse_rule_suffixes(rules):
+    suffixes = {
+        payload for kind, payload, options in rules if kind == "DOMAIN-SUFFIX"
+    }
+    kept = []
+    removed = 0
+    for kind, payload, options in rules:
+        if kind == "DOMAIN-SUFFIX" and has_parent_domain(payload, suffixes):
+            removed += 1
+            continue
+        kept.append((kind, payload, options))
+    return kept, removed
+
+
+def apply_priority(categories):
+    claimed_suffixes = set()
+    claimed_exacts = set()
+    claimed_ips = set()
+    resolved = {}
+    for name, rules in categories:
+        kept = []
+        dropped = []
+        for kind, payload, options in rules:
+            covered = False
+            if kind == "DOMAIN-SUFFIX":
+                covered = covered_by(payload, claimed_suffixes)
+            elif kind == "DOMAIN":
+                covered = payload in claimed_exacts or covered_by(
+                    payload, claimed_suffixes
+                )
+            elif kind in ("IP-CIDR", "IP-CIDR6"):
+                if payload in claimed_ips:
+                    covered = True
+                else:
+                    try:
+                        net = ipaddress.ip_network(payload, strict=False)
+                    except ValueError:
+                        net = None
+                    if net is not None:
+                        for claimed in claimed_ips:
+                            try:
+                                if net.subnet_of(
+                                    ipaddress.ip_network(claimed, strict=False)
+                                ):
+                                    covered = True
+                                    break
+                            except (ValueError, TypeError):
+                                continue
+            if covered:
+                dropped.append(payload)
+                continue
+            kept.append((kind, payload, options))
+
+        for kind, payload, options in kept:
+            if kind == "DOMAIN-SUFFIX":
+                claimed_suffixes.add(payload)
+            elif kind == "DOMAIN":
+                claimed_exacts.add(payload)
+            elif kind in ("IP-CIDR", "IP-CIDR6"):
+                claimed_ips.add(payload)
+        resolved[name] = kept
+        if dropped:
+            print(
+                "  %s: dropped %d lower-priority rules: %s"
+                % (name, len(dropped), ", ".join(sorted(dropped)))
+            )
+    return resolved
+
+
 def load_config(path):
     with open(path, encoding="utf-8") as f:
         text = f.read()
@@ -376,6 +490,9 @@ def load_ads(cfg, mode, state):
         domains = {d for d in domains if not covered_by(d, whitelist)}
     if unban_ips:
         ips -= unban_ips
+    domains, removed = collapse_subdomains(domains)
+    if removed:
+        print("  ads: collapsed %d redundant subdomains" % removed)
     return domains, ips
 
 
@@ -407,6 +524,9 @@ def load_rules(cfg, key, state, blocklist=None, keyword_blocklist=None, siri=Fal
                 continue
             seen.add(rule_key)
             rules.append((kind, payload, options))
+    rules, removed = collapse_rule_suffixes(rules)
+    if removed:
+        print("  %s: collapsed %d redundant suffixes" % (key, removed))
     return rules
 
 
@@ -417,8 +537,12 @@ def render_rule(kind, payload, policy, options=None):
     return ",".join(parts)
 
 
-def build_profile(cfg, key, profile, ads, rules):
+def build_profile(cfg, key, profile, ads, rules, suffix_lists, priority):
     lines = []
+    policy_map = {}
+
+    def note(kind, payload, policy):
+        policy_map.setdefault((kind, payload), set()).add(policy)
     lines.append("# Shadowrocket %s profile" % profile["title"])
     lines.append("# Generated: %s" % time.strftime("%Y-%m-%d %H:%M:%S"))
     lines.append("# For %s network. See README.md for details." % profile["title"])
@@ -440,48 +564,54 @@ def build_profile(cfg, key, profile, ads, rules):
     lines.append("")
     lines.append("[Rule]")
 
-    lines.append("# --- LAN ---")
-    for kind, payload, options in rules["lan"]:
-        lines.append(render_rule(kind, payload, "DIRECT", options))
-
-    lines.append("# --- Ads ---")
+    labels = {
+        "ads": "Ads",
+        "lan": "LAN",
+        "ai": "AI",
+        "siri": "Siri AI",
+        "streaming": "Streaming",
+        "apple": "Apple",
+        "google": "Google",
+        "github": "GitHub",
+        "china": "China",
+    }
+    policies = {
+        "lan": "DIRECT",
+        "ai": "AI",
+        "siri": "SiriAI",
+        "streaming": "Streaming",
+        "apple": "Apple",
+        "google": profile.get("google_policy"),
+        "github": profile.get("github_policy"),
+        "china": "BackCN",
+    }
     ad_domains, ad_ips = ads
-    for domain in sorted(ad_domains):
-        lines.append("DOMAIN-SUFFIX,%s,REJECT" % domain)
-    for ip in sorted(ad_ips):
-        kind = "IP-CIDR6" if ":" in ip else "IP-CIDR"
-        lines.append(render_rule(kind, ip, "REJECT", ["no-resolve"]))
 
-    lines.append("# --- Siri AI ---")
-    for kind, payload, options in rules["siri"]:
-        lines.append(render_rule(kind, payload, "SiriAI", options))
+    for name in priority:
+        lines.append("# --- %s ---" % labels.get(name, name))
+        if name == "ads":
+            for domain in sorted(ad_domains):
+                lines.append("DOMAIN-SUFFIX,%s,REJECT" % domain)
+                note("DOMAIN-SUFFIX", domain, "REJECT")
+            for ip in sorted(ad_ips):
+                kind = "IP-CIDR6" if ":" in ip else "IP-CIDR"
+                lines.append(render_rule(kind, ip, "REJECT", ["no-resolve"]))
+                note(kind, ip, "REJECT")
+        elif name in ("apple", "google", "github"):
+            policy = policies[name]
+            if not policy:
+                continue
+            for suffix in suffix_lists[name + "_suffixes"]:
+                lines.append("DOMAIN-SUFFIX,%s,%s" % (suffix, policy))
+                note("DOMAIN-SUFFIX", suffix, policy)
+        else:
+            policy = policies[name]
+            for kind, payload, options in rules[name]:
+                lines.append(render_rule(kind, payload, policy, options))
+                note(kind, payload, policy)
 
-    lines.append("# --- AI ---")
-    for kind, payload, options in rules["ai"]:
-        lines.append(render_rule(kind, payload, "AI", options))
-
-    lines.append("# --- Streaming ---")
-    for kind, payload, options in rules["streaming"]:
-        lines.append(render_rule(kind, payload, "Streaming", options))
-
-    lines.append("# --- Apple ---")
-    for suffix in cfg.get("apple_suffixes", []):
-        lines.append("DOMAIN-SUFFIX,%s,Apple" % suffix)
-
-    if profile.get("google_policy"):
-        lines.append("# --- Google ---")
-        for suffix in cfg.get("google_suffixes", []):
-            lines.append("DOMAIN-SUFFIX,%s,%s" % (suffix, profile["google_policy"]))
-
-    if profile.get("github_policy"):
-        lines.append("# --- GitHub ---")
-        for suffix in cfg.get("github_suffixes", []):
-            lines.append("DOMAIN-SUFFIX,%s,%s" % (suffix, profile["github_policy"]))
-
-    lines.append("# --- China ---")
-    for kind, payload, options in rules["china"]:
-        lines.append(render_rule(kind, payload, "BackCN", options))
     lines.append("DOMAIN-SUFFIX,cn,BackCN")
+    note("DOMAIN-SUFFIX", "cn", "BackCN")
     lines.append("GEOIP,CN,BackCN")
     lines.append("FINAL,%s" % profile["final"])
 
@@ -496,6 +626,24 @@ def build_profile(cfg, key, profile, ads, rules):
         seen.add(line)
         unique.append(line)
 
+    conflicts = {
+        rule_key: sorted(policies)
+        for rule_key, policies in policy_map.items()
+        if len(policies) > 1
+    }
+    conflict_path = os.path.join(CACHE, "conflicts-%s.txt" % key)
+    if conflicts:
+        os.makedirs(CACHE, exist_ok=True)
+        with open(conflict_path, "w", encoding="utf-8") as f:
+            for (kind, payload), policies in sorted(conflicts.items()):
+                f.write("%s,%s -> %s\n" % (kind, payload, ",".join(policies)))
+        print(
+            "  %s: %d policy conflicts -> %s"
+            % (profile["title"], len(conflicts), conflict_path)
+        )
+    elif os.path.exists(conflict_path):
+        os.remove(conflict_path)
+
     path = os.path.join(ROOT, profile["output"])
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(unique) + "\n")
@@ -506,7 +654,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ad-mode", choices=("lite", "full"), default="lite")
     parser.add_argument("--config", default=CONFIG)
+    parser.add_argument("--offline", action="store_true")
     args = parser.parse_args()
+
+    global OFFLINE
+    OFFLINE = args.offline
 
     started = time.time()
     cfg = load_config(args.config)
@@ -546,9 +698,64 @@ def main():
     print("Fetching LAN sources...")
     rules["lan"] = load_rules(cfg, "lan", state)
 
+    raw_suffix_lists = {
+        "apple_suffixes": [
+            ("DOMAIN-SUFFIX", suffix, []) for suffix in cfg.get("apple_suffixes", [])
+        ],
+        "google_suffixes": [
+            ("DOMAIN-SUFFIX", suffix, []) for suffix in cfg.get("google_suffixes", [])
+        ],
+        "github_suffixes": [
+            ("DOMAIN-SUFFIX", suffix, []) for suffix in cfg.get("github_suffixes", [])
+        ],
+    }
+    ads_rules = [("DOMAIN-SUFFIX", domain, []) for domain in ads[0]]
+    ads_rules += [
+        ("IP-CIDR6" if ":" in ip else "IP-CIDR", ip, ["no-resolve"])
+        for ip in ads[1]
+    ]
+    category_map = {
+        "ads": ads_rules,
+        "lan": rules["lan"],
+        "ai": rules["ai"],
+        "siri": rules["siri"],
+        "streaming": rules["streaming"],
+        "apple": raw_suffix_lists["apple_suffixes"],
+        "google": raw_suffix_lists["google_suffixes"],
+        "github": raw_suffix_lists["github_suffixes"],
+        "china": rules["china"],
+    }
+    priority = []
+    seen_priority = set()
+    for name in cfg.get("priority", DEFAULT_PRIORITY):
+        if name not in category_map:
+            print("  WARN unknown priority category: %s" % name)
+            continue
+        if name in seen_priority:
+            continue
+        seen_priority.add(name)
+        priority.append(name)
+    for name in DEFAULT_PRIORITY:
+        if name not in seen_priority:
+            print("  WARN priority missing category, appending at end: %s" % name)
+            priority.append(name)
+            seen_priority.add(name)
+
+    categories = [(name, category_map[name]) for name in priority]
+    resolved = apply_priority(categories)
+    for name in ("lan", "ai", "siri", "streaming", "china"):
+        rules[name] = resolved[name]
+    suffix_lists = {
+        "apple_suffixes": [payload for _, payload, _ in resolved["apple"]],
+        "google_suffixes": [payload for _, payload, _ in resolved["google"]],
+        "github_suffixes": [payload for _, payload, _ in resolved["github"]],
+    }
+
     print("Building configs...")
     for key, profile in cfg["profiles"].items():
-        path, count = build_profile(cfg, key, profile, ads, rules)
+        path, count = build_profile(
+            cfg, key, profile, ads, rules, suffix_lists, priority
+        )
         size = os.path.getsize(path)
         print("  %-12s %7d lines  %8d bytes  %s" % (profile["title"], count, size, path))
 
