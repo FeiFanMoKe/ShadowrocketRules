@@ -195,6 +195,9 @@ Ads/PCDN > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN > FI
 | [ACL4SSR BanAD](https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/BanAD.list) | 广告联盟 |
 | [ACL4SSR BanProgramAD](https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/BanProgramAD.list) | 常用 App 去广告 |
 | [AdRules](https://github.com/Cats-Team/AdRules) | 合并广告列表 |
+| [blackmatrix7 BlockHTTPDNS](https://github.com/blackmatrix7/ios_rule_script/tree/master/rewrite/Shadowrocket/BlockHTTPDNS) | 拦截 HTTPDNS，防止 App 绕过 DNS 广告过滤 |
+
+> HTTPDNS 说明：部分 App 不通过系统 DNS，而是用 HTTP 接口（如 `httpdns.*`、`dns.*`）直接解析 IP，会绕过本项目的域名级广告拦截。合入 `BlockHTTPDNS` 后，这些 HTTPDNS 端点会被 `REJECT`，迫使 App 回退到系统 DNS，让广告拦截生效。这也是纯域名/IP 规则，**不需要 MITM**。
 
 如果出现以下问题：
 

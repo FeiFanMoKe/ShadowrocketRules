@@ -21,6 +21,8 @@ ads:
       url: https://raw.githubusercontent.com/xinggsf/Adblock-Plus-Rule/master/rule.txt
     - name: peterlowe
       url: https://pgl.yoyo.org/adservers/serverlist.php?hostformat=adblockplus;showintro=0
+    - name: blockhttpdns
+      url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rewrite/Shadowrocket/BlockHTTPDNS/BlockHTTPDNS.sgmodule
   full_extra:
     - name: antiad
       url: https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt

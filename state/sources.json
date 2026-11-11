@@ -59,6 +59,12 @@
     "last_checked": "2026-11-13",
     "rule_count": 127
   },
+  "blockhttpdns": {
+    "hash": "c6cf7ec58dafc562cc669b23bf03df96a4676e01d1512b32dc6668d491bfb2b4",
+    "last_changed": "2026-11-11",
+    "last_checked": "2026-11-11",
+    "rule_count": 65
+  },
   "china": {
     "hash": "6482d70d82d023a50ae7e9bfe7baf5f22a22b252092a0dacbb730d7bde1c03f2",
     "last_changed": "2026-11-10",
