@@ -237,7 +237,7 @@ DOMAIN-KEYWORD,openai,AI
 
 **局限：**
 
-- GitHub Actions 的 action 版本用的是 tag（`@v4`、`@v3`），不是 commit SHA 固定，存在供应链风险；
+- GitHub Actions 的 action 已固定到 commit SHA，并通过 Dependabot 每周检查更新；升级 action 时需要人工确认；
 - 第一次运行时没有 `factory/cache` 缓存；如果 raw.githubusercontent.com 或 jsDelivr 拉取失败，可能构建失败；
 - `state` 提交使用 `git push origin HEAD:main`，并且 `continue-on-error: true`；如果 `main` 有分支保护，状态可能提交失败，下一次运行的新鲜度判断会不准确；
 - `STALE` 只出现在日志里，没有自动通知；
