@@ -62,7 +62,7 @@
   "blockhttpdns": {
     "hash": "c6cf7ec58dafc562cc669b23bf03df96a4676e01d1512b32dc6668d491bfb2b4",
     "last_changed": "2026-11-11",
-    "last_checked": "2026-11-11",
+    "last_checked": "2026-11-13",
     "rule_count": 65
   },
   "china": {
@@ -96,10 +96,10 @@
     "rule_count": 13
   },
   "easylist_china": {
-    "hash": "923e710a69938318dbbfebb748aa9dd58695e015abc433bfef17008fa1530f50",
+    "hash": "f844a6ff4b1a5172980b40ee88e88c6abd14a42af3f86795b889614fedc87fa2",
     "last_changed": "2026-11-13",
     "last_checked": "2026-11-13",
-    "rule_count": 5825
+    "rule_count": 5829
   },
   "gemini": {
     "hash": "b09b780a4e48615430961c0a7cfc820fc27f578bf0c2669d7a2e194cb647c040",
