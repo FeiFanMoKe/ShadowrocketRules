@@ -475,6 +475,30 @@ def load_block_sources(cfg, mode, state):
             exceptions |= new_exceptions
         parsed[key] = (domains, ips, exceptions)
 
+    tracking_domains, tracking_ips = set(), set()
+    for source in cfg.get("tracking_exclude", []):
+        text = fetch(source["name"], source["url"])
+        if not text:
+            continue
+        new_domains, new_ips, new_exceptions = parse_ad_source(text)
+        record_source(
+            state,
+            source["name"],
+            ["D:%s" % d for d in new_domains]
+            + ["I:%s" % ip for ip in new_ips]
+            + ["E:%s" % e for e in new_exceptions],
+        )
+        if new_exceptions:
+            new_domains = {
+                d for d in new_domains if not covered_by(d, new_exceptions)
+            }
+        tracking_domains |= new_domains
+        tracking_ips |= new_ips
+
+    tracking_domains, removed = collapse_subdomains(tracking_domains)
+    if removed:
+        print("  tracking: collapsed %d redundant subdomains" % removed)
+
     unban_domains, unban_ips = set(), set()
     for source in cfg.get("unban", []):
         text = fetch(source["name"], source["url"])
@@ -500,6 +524,16 @@ def load_block_sources(cfg, mode, state):
             domains = {d for d in domains if not covered_by(d, whitelist)}
         if unban_ips:
             ips -= unban_ips
+        if key == "ads" and tracking_domains:
+            before = len(domains)
+            domains = {
+                d for d in domains if not covered_by(d, tracking_domains)
+            }
+            excluded = before - len(domains)
+            if excluded:
+                print("  ads: excluded %d tracking domains" % excluded)
+        if key == "ads" and tracking_ips:
+            ips -= tracking_ips
         domains, removed = collapse_subdomains(domains)
         if removed:
             print("  %s: collapsed %d redundant subdomains" % (key, removed))

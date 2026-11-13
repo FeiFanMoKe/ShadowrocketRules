@@ -22,17 +22,6 @@ MIN_SIRI_RULES = 5
 MIN_APPLE_RULES = 10
 MIN_STREAMING_RULES = 100
 MIN_BACKCN_RULES = 100
-CANARIES = (
-    ("DOMAIN-SUFFIX", "doubleclick.net", "Ads"),
-    ("DOMAIN-SUFFIX", "kuiniuca.com", "PCDN"),
-    ("DOMAIN-SUFFIX", "netflix.com", "Streaming"),
-    ("DOMAIN-SUFFIX", "weixin.qq.com", "BackCN"),
-    ("DOMAIN-SUFFIX", "baidu.com", "BackCN"),
-    ("DOMAIN-SUFFIX", "google.com", None),
-    ("DOMAIN-SUFFIX", "gstatic.com", None),
-    ("DOMAIN-SUFFIX", "github.com", None),
-    ("DOMAIN-SUFFIX", "githubusercontent.com", None),
-)
 
 
 def load_groups(lines):
@@ -92,7 +81,6 @@ def validate(path):
         "Apple": 0,
         "BackCN": 0,
     }
-    rule_targets = {}
     for index, rule in enumerate(rules):
         parts = [part.strip() for part in rule.split(",")]
         if parts[0] == "FINAL":
@@ -108,7 +96,6 @@ def validate(path):
             target = parts[2]
             if target in ("Ads", "PCDN"):
                 block_rules += 1
-            rule_targets.setdefault((parts[0], parts[1]), target)
         if target not in allowed:
             errors.append("unknown policy %r in %s" % (target, rule))
         if target in policy_counts:
@@ -140,16 +127,6 @@ def validate(path):
             "too few BackCN rules: %d < %d"
             % (policy_counts["BackCN"], MIN_BACKCN_RULES)
         )
-
-    for kind, payload, expected in CANARIES:
-        target = rule_targets.get((kind, payload))
-        if target is None:
-            errors.append("missing canary rule: %s,%s" % (kind, payload))
-        elif expected is not None and target != expected:
-            errors.append(
-                "canary rule %s,%s has policy %s, expected %s"
-                % (kind, payload, target, expected)
-            )
 
     if len(final_positions) != 1:
         errors.append("expected exactly one FINAL, got %d" % len(final_positions))

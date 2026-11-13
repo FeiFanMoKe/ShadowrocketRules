@@ -46,26 +46,44 @@ ABP 规则里带以下内容的，会整条跳过：
 - 如果确实需要拦，只能写 `URL-REGEX`，但 HTTPS 路径通常要开启 MITM/HTTPS 解密才可见；
 - 为了拦一个路径广告去开 MITM，会引入证书安装、兼容性和隐私风险，所以当前选择不做。
 
-### 1.3 广告/PCDN 列表按上游原样保留
+### 1.3 广告/PCDN 列表与 EasyPrivacy 追踪剔除
 
-没有本地广告白名单，也没有 `manual_*.txt`。上游列表里的域名会按原样进入最终配置。
+没有本地广告白名单，也没有 `manual_*.txt`。上游列表里的域名会进入最终配置，但 `Ads` 规则会先剔除 EasyPrivacy 中标记为追踪/遥测的域名。
 
-当前配置里真实存在的非广告类 REJECT 例子：
+当前构建还会拉取 [EasyPrivacy](https://easylist.to/)，把其中的 tracking 域名从 `Ads` 中删除；EasyPrivacy 本身不直接生成拦截规则。当前大约会剔除 208 个域名，例如：
+
+```text
+metrics.icloud.com
+analytics.tiktok.com
+bat.bing.com
+googletagmanager.com
+csi.gstatic.com
+```
+
+因此 `metrics.icloud.com` 现在不会出现在 `Ads` 规则里。
+
+当前配置里仍然存在的非广告类拦截例子：
 
 - `doh.dns.apple.com`，来自 `adrules_dns` 的 `||doh.dns.apple.com^`；
 - `httpdns.huaweicloud.com`，来自 `adrules_dns` 的 `||httpdns.huaweicloud.com^`；
-- `metrics.icloud.com`，来自 Peter Lowe 的 `||metrics.icloud.com^`，是 Apple 设备诊断端点；
 - `crashlytics.com`，来自 Peter Lowe 的 `||crashlytics.com^`。
 
 这些不是解析 bug，是上游有意收录的：
 
 - AdRules DNS 会把 DoH/HTTPDNS 端点一起拦掉，避免应用绕过 DNS 过滤；
-- Peter Lowe 把 Crashlytics、Apple 设备诊断等归到跟踪/隐私类；
-- `metrics.icloud.com` 是 Apple 的 iCloud 设备诊断端点，不承载 iCloud 同步数据；它被拦截通常只会影响诊断上报。
+- Peter Lowe 把 Crashlytics 等归到跟踪/隐私类；
+- EasyPrivacy 的 tracking 域名会被剔除，但这只覆盖 EasyPrivacy 收录的域名。
+
+**局限：**
+
+- 只做域名级的精确/父域匹配：EasyPrivacy 里是子域、而广告规则里是父域时，父域规则仍会拦截该子域；
+- EasyPrivacy 也可能把某些广告域名标成 tracking，导致广告漏拦；
+- EasyPrivacy 不覆盖的追踪/遥测域名仍可能留在 `Ads` 里；
+- `metrics.icloud.com` 被剔除后，Apple 可能重新收到这部分诊断数据。
 
 **当前策略：**
 
-- 不做本地例外，遵循上游；
+- 不做本地白名单，遵循上游和 EasyPrivacy 的判定；
 - `PCDN` 和 `Ads` 已拆成独立分组，默认都是 `REJECT`；排查问题时可以把对应分组临时切到 `DIRECT` 或 `PROXY`；
 - 如果实际使用中确认受到影响，再开 issue 分析，必要时调整源或向上游反馈；
 - 因为没有手工白名单，不能单独放行 `kuiniuca.com` 这类域名（只能整体切换 `PCDN` 分组）。
@@ -75,7 +93,8 @@ ABP 规则里带以下内容的，会整条跳过：
 ### 1.4 lite / full 两种广告模式
 
 - 默认 `lite`：ACL4SSR BanAD、BanProgramAD、AdRules DNS、EasyList China、乘风、Peter Lowe + PCDN；
-- `--ad-mode full`：额外加入 anti-AD、EasyList。
+- `--ad-mode full`：额外加入 anti-AD、EasyList；
+- 两种模式都会拉取 EasyPrivacy，仅用于从 `Ads` 中剔除 tracking 域名，不直接生成规则。
 
 **局限：**
 
@@ -221,7 +240,7 @@ DOMAIN-KEYWORD,openai,AI
 - 没有完整的路由模拟测试；
 - 不会验证“某个域名最终命中哪个策略”；
 - 不会发现规则顺序错误、`skip-proxy` 覆盖规则、组默认值错误；
-- 构建前检查会校验 Streaming/BackCN 规则数和 canary 域名；`build_status.json` 中 `skipped` 的源会直接失败，`from_cache` 的源只警告；
+- 构建前检查会校验 Streaming/BackCN 规则数；`build_status.json` 中 `skipped` 的源会直接失败，`from_cache` 的源只警告；
 - 不会验证真实广告拦截率、误杀率；
 - 只在港版 iPhone + 港区 Apple ID 上做过人工验证；
 - 没有在大陆/新加坡设备、Android、Clash、Surge 等其他客户端上测试；

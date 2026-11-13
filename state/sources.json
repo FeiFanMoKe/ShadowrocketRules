@@ -101,6 +101,12 @@
     "last_checked": "2026-11-13",
     "rule_count": 5829
   },
+  "easyprivacy": {
+    "hash": "3f541c117e2a4b35c20d06d4b27004feac93a07d158f081a443380980e34c9b0",
+    "last_changed": "2026-11-13",
+    "last_checked": "2026-11-13",
+    "rule_count": 40722
+  },
   "gemini": {
     "hash": "b09b780a4e48615430961c0a7cfc820fc27f578bf0c2669d7a2e194cb647c040",
     "last_changed": "2026-11-10",

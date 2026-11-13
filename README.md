@@ -10,7 +10,7 @@
 
 所有配置共同点：
 
-- 广告规则自动从公开上游拉取并去重；
+- 广告规则自动从公开上游拉取并去重，并剔除 EasyPrivacy 中标记为追踪/遥测的域名；
 - 每天北京时间 07:00 自动构建；
 - 仅在 **港版 iPhone + 港区 Apple ID** 上测试过。
 
@@ -57,7 +57,7 @@
 | 分组 | 作用 | 可选值 |
 |---|---|---|
 | `PCDN` | P2P CDN 域名 | `REJECT` / `DIRECT` / `PROXY` |
-| `Ads` | 广告、跟踪和 HTTPDNS 域名 | `REJECT` / `DIRECT` / `PROXY` |
+| `Ads` | 广告和 HTTPDNS 域名（EasyPrivacy 中的追踪域名会剔除） | `REJECT` / `DIRECT` / `PROXY` |
 | `AI` | OpenAI / Claude / Gemini | `PROXY` / `DIRECT` |
 | `SiriAI` | Siri / Apple Intelligence 相关域名 | `PROXY` / `DIRECT` |
 | `Streaming` | Netflix / Disney+ / HBO 等 | `DIRECT` / `PROXY` |
@@ -200,12 +200,14 @@ PCDN > Ads > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN > 
 | [EasyList China](https://github.com/easylist/easylistchina) | 中文网页广告 |
 | [EasyList](https://github.com/easylist/easylist) | 全球网页广告 |
 | [乘风广告过滤规则](https://github.com/xinggsf/Adblock-Plus-Rule) | 中文视频/网页广告 |
-| [Peter Lowe 广告和跟踪域名](https://pgl.yoyo.org/adservers/) | 全球广告/跟踪域名 |
+| [Peter Lowe 广告和跟踪域名](https://pgl.yoyo.org/adservers/) | 全球广告/跟踪域名；其中 EasyPrivacy 标记的 tracking 会从 `Ads` 剔除 |
 | [anti-AD](https://github.com/privacy-protection-tools/anti-AD) | 国内 App 广告和跟踪域名 |
 | [ACL4SSR BanAD](https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/BanAD.list) | 广告联盟 |
 | [ACL4SSR BanProgramAD](https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/BanProgramAD.list) | 常用 App 去广告 |
 | [AdRules](https://github.com/Cats-Team/AdRules) | 合并广告列表 |
 | [blackmatrix7 BlockHTTPDNS](https://github.com/blackmatrix7/ios_rule_script/tree/master/rewrite/Shadowrocket/BlockHTTPDNS) | 拦截 HTTPDNS，防止 App 绕过 DNS 广告过滤 |
+
+> 追踪剔除：构建还会拉取 [EasyPrivacy](https://easylist.to/)，把其中标记为追踪/遥测的域名从 `Ads` 规则中删除。EasyPrivacy 本身不直接生成拦截规则。例如 `metrics.icloud.com` 在 EasyPrivacy 中被归为 tracking，因此不会出现在最终的 `Ads` 规则里。
 
 > HTTPDNS 说明：部分 App 不通过系统 DNS，而是用 HTTP 接口（如 `httpdns.*`、`dns.*`）直接解析 IP，会绕过本项目的域名级广告拦截。合入 `BlockHTTPDNS` 后，这些 HTTPDNS 端点会归入 `Ads` 分组（默认 `REJECT`），迫使 App 回退到系统 DNS，让广告拦截生效。这也是纯域名/IP 规则，**不需要 MITM**。
 
@@ -237,7 +239,7 @@ PCDN（P2P CDN）不是广告，但会把设备当作内容分发节点，占用
 
 - GitHub Actions 每天北京时间 07:00（UTC 23:00）自动构建。
 - 构建流程：拉取上游 → 归一化 → 去重 → 校验 → 生成三份配置 → 发布。
-- 关键类别、canary 域名缺失，或有源被跳过时，preflight 会失败，不会发布；workflow 失败会自动创建 issue 通知。
+- 关键类别规则缺失、规则数低于阈值，或有源被跳过时，preflight 会失败，不会发布；workflow 失败会自动创建 issue 通知。
 - 每个上游都会记录**规则内容的哈希**：
   - 只看规则内容有没有变化，不看列表里的日期或版本号；
   - 如果某个上游连续 **2 年（730 天）** 规则内容没有变化，构建报告会标记 `STALE`，提醒更换源；
