@@ -12,15 +12,19 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIGS = ("sr_cn.conf", "sr_hk.conf", "sr_sg.conf")
 STATUS_PATH = os.path.join(ROOT, "factory", "cache", "build_status.json")
-REQUIRED_GROUPS = {"AI", "SiriAI", "Streaming", "Apple", "BackCN"}
+REQUIRED_GROUPS = {"PCDN", "Ads", "AI", "SiriAI", "Streaming", "Apple", "BackCN"}
 MIN_RULES = 10000
-MIN_AD_REJECTS = 5000
+MIN_BLOCK_RULES = 5000
+MIN_ADS_RULES = 5000
+MIN_PCDN_RULES = 10
 MIN_AI_RULES = 20
 MIN_SIRI_RULES = 5
 MIN_APPLE_RULES = 10
 MIN_STREAMING_RULES = 100
 MIN_BACKCN_RULES = 100
 CANARIES = (
+    ("DOMAIN-SUFFIX", "doubleclick.net", "Ads"),
+    ("DOMAIN-SUFFIX", "kuiniuca.com", "PCDN"),
     ("DOMAIN-SUFFIX", "netflix.com", "Streaming"),
     ("DOMAIN-SUFFIX", "weixin.qq.com", "BackCN"),
     ("DOMAIN-SUFFIX", "baidu.com", "BackCN"),
@@ -78,8 +82,10 @@ def validate(path):
         errors.append("too few rules: %d < %d" % (len(rules), MIN_RULES))
 
     final_positions = []
-    ad_rejects = 0
+    block_rules = 0
     policy_counts = {
+        "Ads": 0,
+        "PCDN": 0,
         "AI": 0,
         "SiriAI": 0,
         "Streaming": 0,
@@ -100,14 +106,24 @@ def validate(path):
                 errors.append("bad rule: %s" % rule)
                 continue
             target = parts[2]
-            if target == "REJECT":
-                ad_rejects += 1
+            if target in ("Ads", "PCDN"):
+                block_rules += 1
             rule_targets.setdefault((parts[0], parts[1]), target)
         if target not in allowed:
             errors.append("unknown policy %r in %s" % (target, rule))
         if target in policy_counts:
             policy_counts[target] += 1
 
+    if policy_counts["Ads"] < MIN_ADS_RULES:
+        errors.append(
+            "too few Ads rules: %d < %d"
+            % (policy_counts["Ads"], MIN_ADS_RULES)
+        )
+    if policy_counts["PCDN"] < MIN_PCDN_RULES:
+        errors.append(
+            "too few PCDN rules: %d < %d"
+            % (policy_counts["PCDN"], MIN_PCDN_RULES)
+        )
     if policy_counts["AI"] < MIN_AI_RULES:
         errors.append("too few AI rules: %d" % policy_counts["AI"])
     if policy_counts["SiriAI"] < MIN_SIRI_RULES:
@@ -139,12 +155,14 @@ def validate(path):
         errors.append("expected exactly one FINAL, got %d" % len(final_positions))
     elif final_positions[0] != len(rules) - 1:
         errors.append("FINAL is not the last rule")
-    if ad_rejects < MIN_AD_REJECTS:
-        errors.append("too few ad rejects: %d < %d" % (ad_rejects, MIN_AD_REJECTS))
+    if block_rules < MIN_BLOCK_RULES:
+        errors.append(
+            "too few ad/PCDN rules: %d < %d" % (block_rules, MIN_BLOCK_RULES)
+        )
     if os.path.getsize(path) < 100 * 1024:
         errors.append("file too small")
 
-    return errors, len(rules), ad_rejects, groups
+    return errors, len(rules), block_rules, groups
 
 
 def main():
@@ -179,7 +197,7 @@ def main():
             print("FAIL %s: missing" % name)
             failed = True
             continue
-        errors, rule_count, ad_rejects, groups = validate(path)
+        errors, rule_count, block_rules, groups = validate(path)
         if errors:
             failed = True
             print("FAIL %s" % name)
@@ -187,8 +205,8 @@ def main():
                 print("  - %s" % error)
         else:
             print(
-                "OK   %s: %d rules, %d ad rejects, groups=%s"
-                % (name, rule_count, ad_rejects, ",".join(sorted(groups)))
+                "OK   %s: %d rules, %d ad/PCDN rules, groups=%s"
+                % (name, rule_count, block_rules, ",".join(sorted(groups)))
             )
     return 1 if failed else 0
 

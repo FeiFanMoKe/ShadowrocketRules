@@ -54,18 +54,21 @@ ABP 规则里带以下内容的，会整条跳过：
 
 - `doh.dns.apple.com`，来自 `adrules_dns` 的 `||doh.dns.apple.com^`；
 - `httpdns.huaweicloud.com`，来自 `adrules_dns` 的 `||httpdns.huaweicloud.com^`；
+- `metrics.icloud.com`，来自 Peter Lowe 的 `||metrics.icloud.com^`，是 Apple 设备诊断端点；
 - `crashlytics.com`，来自 Peter Lowe 的 `||crashlytics.com^`。
 
 这些不是解析 bug，是上游有意收录的：
 
 - AdRules DNS 会把 DoH/HTTPDNS 端点一起拦掉，避免应用绕过 DNS 过滤；
-- Peter Lowe 把 Crashlytics 归到跟踪/隐私类。
+- Peter Lowe 把 Crashlytics、Apple 设备诊断等归到跟踪/隐私类；
+- `metrics.icloud.com` 是 Apple 的 iCloud 设备诊断端点，不承载 iCloud 同步数据；它被拦截通常只会影响诊断上报。
 
 **当前策略：**
 
 - 不做本地例外，遵循上游；
+- `PCDN` 和 `Ads` 已拆成独立分组，默认都是 `REJECT`；排查问题时可以把对应分组临时切到 `DIRECT` 或 `PROXY`；
 - 如果实际使用中确认受到影响，再开 issue 分析，必要时调整源或向上游反馈；
-- 因为没有手工白名单，不能单独放行 `kuiniuca.com` 这类域名。
+- 因为没有手工白名单，不能单独放行 `kuiniuca.com` 这类域名（只能整体切换 `PCDN` 分组）。
 
 > 注意：规则命中不等于功能一定受影响。比如 `doh.dns.apple.com` 被 REJECT 时，实测 iCloud Private Relay 仍可能正常，因为系统级流量可能不走这些规则，或者有回退路径。具体以真机测试为准。
 
@@ -95,8 +98,9 @@ PCDN 源：
 - 没有基于 UDP 端口/流量特征的 PCDN 检测（例如 UDP 3478、异常高位端口）；
 - PCDN 厂商和域名会变，未收录的新域名需要等上游更新；
 - `WangXinKeJi` 最后更新是 2025-06，目前还没到 730 天，但后面可能会被标记 `STALE`；
-- PCDN 拦截可能影响依赖 PCDN 加速的服务，本地没有白名单；
-- 构建时会按 `priority` 从高到低删除被高优先级规则覆盖的低优先级规则；Ads/PCDN 最高，且渲染在 LAN 前面，所以 LAN 父域不会遮蔽 PCDN 子域。
+- PCDN 拦截可能影响依赖 PCDN 加速的服务，本地没有白名单；需要测试时只能把整个 `PCDN` 分组切到 `DIRECT`；
+- 构建时会按 `priority` 从高到低删除被高优先级规则覆盖的低优先级规则；`PCDN` 高于 `Ads`，两者都高于 LAN，且渲染在 LAN 前面，所以 LAN 父域不会遮蔽 PCDN 子域；
+- 同时出现在 PCDN 和 Ads 的域名归 `PCDN` 分组；把 `Ads` 切到 `DIRECT` 时，这些重叠域名仍会被 `PCDN` 拦截。
 
 ### 1.6 上游依赖与新鲜度检查
 
@@ -179,7 +183,7 @@ DOMAIN-KEYWORD,openai,AI
 **局限：**
 
 - 关键词匹配范围大，可能把非目标域名也带进对应组；
-- 规则按优先级渲染：Ads/PCDN > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN；
+- 规则按优先级渲染：PCDN > Ads > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN；
 - 构建会按 `sources.yaml` 的 `priority` 删除被高优先级覆盖的同名规则，例如 `googlevideo.com` 属于 Streaming，Google 里的同名规则会被删除；
 - 优先级过滤只处理 `DOMAIN`、`DOMAIN-SUFFIX`、`IP-CIDR`；`DOMAIN-KEYWORD`、`USER-AGENT` 不参与覆盖判断，也不在精确冲突报告里；
 - 冲突报告只覆盖完全相同的 `(type,payload)`，按策略名统计；正常情况下优先级处理完后报告为空。
@@ -204,12 +208,12 @@ DOMAIN-KEYWORD,openai,AI
 **现状：**
 
 - 构建前会做一次轻量检查：
-  - 有没有 `AI`、`SiriAI`、`Streaming`、`Apple`、`BackCN` 组；
+  - 有没有 `PCDN`、`Ads`、`AI`、`SiriAI`、`Streaming`、`Apple`、`BackCN` 组；
   - 规则目标是否存在；
   - 是否只有一个 `FINAL` 且在最后；
   - 是否有未替换的 `{{...}}`；
   - `skip-proxy` 是否包含 `*.ls.apple.com`；
-  - 规则数、广告数、AI/SiriAI/Apple 规则数是否低于阈值；
+  - 规则数、Ads/PCDN 规则数、AI/SiriAI/Apple 规则数是否低于阈值；
   - 文件大小。
 
 **局限：**

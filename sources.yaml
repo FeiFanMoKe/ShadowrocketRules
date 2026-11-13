@@ -29,7 +29,7 @@ ads:
     - name: easylist
       url: https://easylist-downloads.adblockplus.org/easylist.txt
 
-# 上游白名单：ACL4SSR UnBan，构建时自动拉取并从广告 REJECT 中剔除。
+# 上游白名单：ACL4SSR UnBan，构建时自动拉取并从 Ads/PCDN 规则中剔除。
 # PCDN（P2P CDN）域名：不是广告，但会占用上行带宽，默认 REJECT。
 pcdn:
   - name: antiad_pcdn
@@ -173,8 +173,10 @@ github_suffixes:
 
 # 冲突优先级，从高到低：
 # 同一个域名/IP 同时出现在多个类别时，保留高优先级规则，删除低优先级规则。
+# PCDN 排在 Ads 前面，重叠域名统一由 PCDN 分组控制，便于单独测试。
 # 顺序可以按需调整；未知名称会被忽略，缺失类别会追加到末尾。
 priority:
+  - pcdn
   - ads
   - lan
   - ai
@@ -194,6 +196,8 @@ profiles:
     github_policy: PROXY
     final: PROXY
     groups:
+      PCDN: select,REJECT,DIRECT,PROXY
+      Ads: select,REJECT,DIRECT,PROXY
       AI: select,PROXY,DIRECT
       SiriAI: select,PROXY,DIRECT
       Streaming: select,PROXY,DIRECT
@@ -207,6 +211,8 @@ profiles:
     github_policy: DIRECT
     final: DIRECT
     groups:
+      PCDN: select,REJECT,DIRECT,PROXY
+      Ads: select,REJECT,DIRECT,PROXY
       AI: select,PROXY,DIRECT
       SiriAI: select,PROXY,DIRECT
       Streaming: select,DIRECT,PROXY
@@ -220,6 +226,8 @@ profiles:
     github_policy: DIRECT
     final: DIRECT
     groups:
+      PCDN: select,REJECT,DIRECT,PROXY
+      Ads: select,REJECT,DIRECT,PROXY
       AI: select,DIRECT,PROXY
       SiriAI: select,DIRECT,PROXY
       Streaming: select,DIRECT,PROXY

@@ -52,15 +52,19 @@
 
 ## 代理分组
 
-配置里包含五个代理分组：
+配置里包含七个代理分组：
 
 | 分组 | 作用 | 可选值 |
 |---|---|---|
+| `PCDN` | P2P CDN 域名 | `REJECT` / `DIRECT` / `PROXY` |
+| `Ads` | 广告、跟踪和 HTTPDNS 域名 | `REJECT` / `DIRECT` / `PROXY` |
 | `AI` | OpenAI / Claude / Gemini | `PROXY` / `DIRECT` |
 | `SiriAI` | Siri / Apple Intelligence 相关域名 | `PROXY` / `DIRECT` |
 | `Streaming` | Netflix / Disney+ / HBO 等 | `DIRECT` / `PROXY` |
 | `Apple` | Apple 核心服务 | `DIRECT` / `PROXY` |
 | `BackCN` | 国内网站/App/媒体的回源策略 | `DIRECT` / `PROXY` |
+
+`PCDN` 和 `Ads` 默认都是 `REJECT`，行为和以前一致。需要排查某个广告/PCDN 域名是否影响正常服务时，可以临时把对应分组改成 `DIRECT` 或 `PROXY`，测试完再切回 `REJECT`。
 
 `PROXY` 表示使用 Shadowrocket 首页当前选中的节点，配置里不写死节点名。换节点时只需要在首页切换，不需要改配置。
 
@@ -75,6 +79,8 @@
 
 | 分组 | 大陆 | 香港 | 新加坡 |
 |---|---|---|---|
+| `PCDN` | `REJECT` | `REJECT` | `REJECT` |
+| `Ads` | `REJECT` | `REJECT` | `REJECT` |
 | `AI` | `PROXY` | `PROXY` | `DIRECT` |
 | `SiriAI` | `PROXY` | `PROXY` | `DIRECT` |
 | `Streaming` | `PROXY` | `DIRECT` | `DIRECT` |
@@ -95,6 +101,8 @@
 
 | 想调整的服务 | 对应分组 |
 |---|---|
+| P2P CDN / PCDN | `PCDN` |
+| 广告、跟踪、HTTPDNS | `Ads` |
 | OpenAI / Claude / Gemini | `AI` |
 | Siri / Apple Intelligence | `SiriAI` |
 | Netflix / YouTube / Disney+ / Spotify | `Streaming` |
@@ -107,18 +115,20 @@
 
 - 在香港希望 Netflix 走代理：把 `Streaming` 切到 `PROXY`；
 - 希望 Siri 直连：把 `SiriAI` 切到 `DIRECT`；
-- 需要回国内节点：把 `BackCN` 切到 `PROXY`，并在首页选中大陆节点。默认 `DIRECT`，不切换就保持直连。
+- 需要回国内节点：把 `BackCN` 切到 `PROXY`，并在首页选中大陆节点。默认 `DIRECT`，不切换就保持直连；
+- 排查广告或 PCDN 是否误伤某个服务：把 `Ads` 或 `PCDN` 单独切到 `DIRECT`，测试完切回 `REJECT`。
 
 ### 冲突优先级
 
 同一个域名/IP 同时出现在多个类别时，构建会按下面的顺序保留高优先级规则、删除低优先级规则：
 
 ```text
-Ads/PCDN > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN > FINAL
+PCDN > Ads > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN > FINAL
 ```
 
-- Ads/PCDN 最高，`peiluyou.com` 这类域名会保留 `REJECT`；
-- LAN 只影响本地网络；被 Ads/PCDN 覆盖的 LAN 规则会删除；
+- PCDN/Ads 最高，`peiluyou.com` 这类域名会保留拦截；
+- PCDN 排在 Ads 前面：同时出现在两个列表里的域名归 `PCDN` 分组，方便单独切换测试；
+- LAN 只影响本地网络；被 PCDN/Ads 覆盖的 LAN 规则会删除；
 - AI/SiriAI/Streaming/Apple/Google/GitHub 是服务类别，高于 BackCN/China；
 - 顺序在 `sources.yaml` 的 `priority` 中配置，以后出现冲突直接调整这个列表即可。
 
@@ -197,7 +207,7 @@ Ads/PCDN > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN > FI
 | [AdRules](https://github.com/Cats-Team/AdRules) | 合并广告列表 |
 | [blackmatrix7 BlockHTTPDNS](https://github.com/blackmatrix7/ios_rule_script/tree/master/rewrite/Shadowrocket/BlockHTTPDNS) | 拦截 HTTPDNS，防止 App 绕过 DNS 广告过滤 |
 
-> HTTPDNS 说明：部分 App 不通过系统 DNS，而是用 HTTP 接口（如 `httpdns.*`、`dns.*`）直接解析 IP，会绕过本项目的域名级广告拦截。合入 `BlockHTTPDNS` 后，这些 HTTPDNS 端点会被 `REJECT`，迫使 App 回退到系统 DNS，让广告拦截生效。这也是纯域名/IP 规则，**不需要 MITM**。
+> HTTPDNS 说明：部分 App 不通过系统 DNS，而是用 HTTP 接口（如 `httpdns.*`、`dns.*`）直接解析 IP，会绕过本项目的域名级广告拦截。合入 `BlockHTTPDNS` 后，这些 HTTPDNS 端点会归入 `Ads` 分组（默认 `REJECT`），迫使 App 回退到系统 DNS，让广告拦截生效。这也是纯域名/IP 规则，**不需要 MITM**。
 
 如果出现以下问题：
 
@@ -211,7 +221,7 @@ Ads/PCDN > LAN > AI > SiriAI > Streaming > Apple > Google > GitHub > BackCN > FI
 
 ### PCDN
 
-PCDN（P2P CDN）不是广告，但会把设备当作内容分发节点，占用上行带宽。以下上游会合并进广告 REJECT：
+PCDN（P2P CDN）不是广告，但会把设备当作内容分发节点，占用上行带宽。以下上游会进入独立的 `PCDN` 分组，默认 `REJECT`：
 
 | 上游 | 覆盖内容 |
 |---|---|
@@ -219,7 +229,7 @@ PCDN（P2P CDN）不是广告，但会把设备当作内容分发节点，占用
 | [blackmatrix7 WangXinKeJi](https://github.com/blackmatrix7/ios_rule_script/tree/master/rule/Shadowrocket/WangXinKeJi) | 网心科技/迅雷 PCDN |
 | [uselibrary/PCDN](https://github.com/uselibrary/PCDN) | 通用 CDN、视频平台 P2P |
 
-例如 `kuiniuca.com`（网心科技/星域 CDN）会命中 `DOMAIN-SUFFIX,kuiniuca.com,REJECT`。如果同一个域名同时出现在 Ads/PCDN 和其他分组（Lan、AI、Streaming、Apple、Google、China 等）里，构建时会删除其他分组里的规则，只保留 `REJECT`（例如 `peiluyou.com`）。如果你依赖的某个服务因此受影响，请到对应上游反馈，或者从 `sources.yaml` 的 `pcdn` 列表里移除对应源。
+例如 `kuiniuca.com`（网心科技/星域 CDN）会命中 `DOMAIN-SUFFIX,kuiniuca.com,PCDN`。如果同一个域名同时出现在 PCDN 和 Ads 中，构建时归 `PCDN` 分组；如果出现在 PCDN 和其他分组（Lan、AI、Streaming、Apple、Google、China 等）里，构建时会删除其他分组里的规则（例如 `peiluyou.com`）。如果你依赖的某个服务因此受影响，可以先把 `PCDN` 分组切到 `DIRECT` 做测试，或从 `sources.yaml` 的 `pcdn` 列表里移除对应源。
 
 ---
 

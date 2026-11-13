@@ -35,6 +35,7 @@ MAX_STALE_DAYS = 730
 FETCH_STATUS = {}
 OFFLINE = False
 DEFAULT_PRIORITY = [
+    "pcdn",
     "ads",
     "lan",
     "ai",
@@ -445,29 +446,34 @@ def record_source(state, name, items):
     state[name] = entry
 
 
-def load_ads(cfg, mode, state):
-    ads_cfg = cfg["ads"]
-    sources = list(ads_cfg.get("lite", []))
+def load_block_sources(cfg, mode, state):
+    ad_sources = list(cfg["ads"].get("lite", []))
     if mode == "full":
-        sources += list(ads_cfg.get("full_extra", []))
-    sources += list(cfg.get("pcdn", []))
+        ad_sources += list(cfg["ads"].get("full_extra", []))
+    source_groups = {
+        "ads": ad_sources,
+        "pcdn": list(cfg.get("pcdn", [])),
+    }
 
-    domains, ips, exceptions = set(), set(), set()
-    for source in sources:
-        text = fetch(source["name"], source["url"])
-        if not text:
-            continue
-        new_domains, new_ips, new_exceptions = parse_ad_source(text)
-        record_source(
-            state,
-            source["name"],
-            ["D:%s" % d for d in new_domains]
-            + ["I:%s" % ip for ip in new_ips]
-            + ["E:%s" % e for e in new_exceptions],
-        )
-        domains |= new_domains
-        ips |= new_ips
-        exceptions |= new_exceptions
+    parsed = {}
+    for key, sources in source_groups.items():
+        domains, ips, exceptions = set(), set(), set()
+        for source in sources:
+            text = fetch(source["name"], source["url"])
+            if not text:
+                continue
+            new_domains, new_ips, new_exceptions = parse_ad_source(text)
+            record_source(
+                state,
+                source["name"],
+                ["D:%s" % d for d in new_domains]
+                + ["I:%s" % ip for ip in new_ips]
+                + ["E:%s" % e for e in new_exceptions],
+            )
+            domains |= new_domains
+            ips |= new_ips
+            exceptions |= new_exceptions
+        parsed[key] = (domains, ips, exceptions)
 
     unban_domains, unban_ips = set(), set()
     for source in cfg.get("unban", []):
@@ -485,15 +491,20 @@ def load_ads(cfg, mode, state):
         unban_domains |= new_domains
         unban_ips |= new_ips
 
-    whitelist = exceptions | unban_domains
-    if whitelist:
-        domains = {d for d in domains if not covered_by(d, whitelist)}
-    if unban_ips:
-        ips -= unban_ips
-    domains, removed = collapse_subdomains(domains)
-    if removed:
-        print("  ads: collapsed %d redundant subdomains" % removed)
-    return domains, ips
+    whitelist = unban_domains | {
+        exception for _, _, exceptions in parsed.values() for exception in exceptions
+    }
+    resolved = {}
+    for key, (domains, ips, _) in parsed.items():
+        if whitelist:
+            domains = {d for d in domains if not covered_by(d, whitelist)}
+        if unban_ips:
+            ips -= unban_ips
+        domains, removed = collapse_subdomains(domains)
+        if removed:
+            print("  %s: collapsed %d redundant subdomains" % (key, removed))
+        resolved[key] = (domains, ips)
+    return resolved["ads"], resolved["pcdn"]
 
 
 def load_rules(cfg, key, state, blocklist=None, keyword_blocklist=None, siri=False):
@@ -537,7 +548,7 @@ def render_rule(kind, payload, policy, options=None):
     return ",".join(parts)
 
 
-def build_profile(cfg, key, profile, ads, rules, suffix_lists, priority):
+def build_profile(cfg, key, profile, rules, suffix_lists, priority):
     lines = []
     policy_map = {}
 
@@ -559,12 +570,13 @@ def build_profile(cfg, key, profile, ads, rules, suffix_lists, priority):
     lines.append("fallback-dns-server = system")
     lines.append("")
     lines.append("[Proxy Group]")
-    for name in ("AI", "SiriAI", "Streaming", "Apple", "BackCN"):
+    for name in ("PCDN", "Ads", "AI", "SiriAI", "Streaming", "Apple", "BackCN"):
         lines.append("%s = %s" % (name, profile["groups"][name]))
     lines.append("")
     lines.append("[Rule]")
 
     labels = {
+        "pcdn": "PCDN",
         "ads": "Ads",
         "lan": "LAN",
         "ai": "AI",
@@ -576,6 +588,8 @@ def build_profile(cfg, key, profile, ads, rules, suffix_lists, priority):
         "china": "China",
     }
     policies = {
+        "pcdn": "PCDN",
+        "ads": "Ads",
         "lan": "DIRECT",
         "ai": "AI",
         "siri": "SiriAI",
@@ -585,19 +599,10 @@ def build_profile(cfg, key, profile, ads, rules, suffix_lists, priority):
         "github": profile.get("github_policy"),
         "china": "BackCN",
     }
-    ad_domains, ad_ips = ads
 
     for name in priority:
         lines.append("# --- %s ---" % labels.get(name, name))
-        if name == "ads":
-            for domain in sorted(ad_domains):
-                lines.append("DOMAIN-SUFFIX,%s,REJECT" % domain)
-                note("DOMAIN-SUFFIX", domain, "REJECT")
-            for ip in sorted(ad_ips):
-                kind = "IP-CIDR6" if ":" in ip else "IP-CIDR"
-                lines.append(render_rule(kind, ip, "REJECT", ["no-resolve"]))
-                note(kind, ip, "REJECT")
-        elif name in ("apple", "google", "github"):
+        if name in ("apple", "google", "github"):
             policy = policies[name]
             if not policy:
                 continue
@@ -664,9 +669,10 @@ def main():
     cfg = load_config(args.config)
     state = load_state()
 
-    print("Fetching ad sources (%s mode)..." % args.ad_mode)
-    ads = load_ads(cfg, args.ad_mode, state)
+    print("Fetching ad and PCDN sources (%s mode)..." % args.ad_mode)
+    ads, pcdn = load_block_sources(cfg, args.ad_mode, state)
     print("  ads: %d domains, %d IPs" % (len(ads[0]), len(ads[1])))
+    print("  pcdn: %d domains, %d IPs" % (len(pcdn[0]), len(pcdn[1])))
 
     print("Fetching AI sources...")
     rules = {}
@@ -709,12 +715,18 @@ def main():
             ("DOMAIN-SUFFIX", suffix, []) for suffix in cfg.get("github_suffixes", [])
         ],
     }
-    ads_rules = [("DOMAIN-SUFFIX", domain, []) for domain in ads[0]]
+    ads_rules = [("DOMAIN-SUFFIX", domain, []) for domain in sorted(ads[0])]
     ads_rules += [
         ("IP-CIDR6" if ":" in ip else "IP-CIDR", ip, ["no-resolve"])
-        for ip in ads[1]
+        for ip in sorted(ads[1])
+    ]
+    pcdn_rules = [("DOMAIN-SUFFIX", domain, []) for domain in sorted(pcdn[0])]
+    pcdn_rules += [
+        ("IP-CIDR6" if ":" in ip else "IP-CIDR", ip, ["no-resolve"])
+        for ip in sorted(pcdn[1])
     ]
     category_map = {
+        "pcdn": pcdn_rules,
         "ads": ads_rules,
         "lan": rules["lan"],
         "ai": rules["ai"],
@@ -743,7 +755,7 @@ def main():
 
     categories = [(name, category_map[name]) for name in priority]
     resolved = apply_priority(categories)
-    for name in ("lan", "ai", "siri", "streaming", "china"):
+    for name in ("pcdn", "ads", "lan", "ai", "siri", "streaming", "china"):
         rules[name] = resolved[name]
     suffix_lists = {
         "apple_suffixes": [payload for _, payload, _ in resolved["apple"]],
@@ -754,7 +766,7 @@ def main():
     print("Building configs...")
     for key, profile in cfg["profiles"].items():
         path, count = build_profile(
-            cfg, key, profile, ads, rules, suffix_lists, priority
+            cfg, key, profile, rules, suffix_lists, priority
         )
         size = os.path.getsize(path)
         print("  %-12s %7d lines  %8d bytes  %s" % (profile["title"], count, size, path))
