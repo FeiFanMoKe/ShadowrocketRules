@@ -593,7 +593,12 @@ def build_profile(cfg, key, profile, rules, suffix_lists, priority):
     lines.append("# For %s network. See README.md for details." % profile["title"])
     lines.append("")
     lines.append("[General]")
-    lines.append("ipv6 = false")
+    ipv6 = "true" if cfg["general"].get("ipv6", False) else "false"
+    prefer_ipv6 = (
+        "true" if cfg["general"].get("prefer_ipv6", False) else "false"
+    )
+    lines.append("ipv6 = %s" % ipv6)
+    lines.append("prefer-ipv6 = %s" % prefer_ipv6)
     lines.append(
         "bypass-system = %s"
         % ("true" if cfg["general"].get("bypass_system", True) else "false")

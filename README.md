@@ -11,8 +11,11 @@
 所有配置共同点：
 
 - 广告规则自动从公开上游拉取并去重，并剔除 EasyPrivacy 中标记为追踪/遥测的域名；
+- IPv6 已启用，并优先使用 IPv6（`prefer-ipv6 = true`）；
 - 每天北京时间 07:00 自动构建；
 - 仅在 **港版 iPhone + 港区 Apple ID** 上测试过。
+
+> IPv6 优先仅在当前网络和代理节点都支持 IPv6 时生效；如果节点只支持 IPv4，部分网站可能首次连接变慢，可把 `sources.yaml` 的 `prefer_ipv6` 改为 `false`。
 
 > 完整的取舍、未覆盖项和风险见 [LIMITATIONS.md](LIMITATIONS.md)。
 
