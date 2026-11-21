@@ -1,9 +1,9 @@
 {
   "acl4ssr_banad": {
-    "hash": "11277fc2436c6cf4c5d0541d4d3ba26b17c2df27034dbc0d2f7e2a271411d618",
-    "last_changed": "2026-11-10",
+    "hash": "2bb1b062c4c9c424ed5814cf64eafe7e5a50c78c86fed1d2fa081bc8f61e392b",
+    "last_changed": "2026-11-21",
     "last_checked": "2026-11-21",
-    "rule_count": 563
+    "rule_count": 566
   },
   "acl4ssr_banprogramad": {
     "hash": "83d25f7dea8bd7115aabe0d74e7344cd4c54d2a230994444c41eba30bc737663",
@@ -96,10 +96,10 @@
     "rule_count": 13
   },
   "easylist_china": {
-    "hash": "584adcc470116c6ec102e924606489b2c0fef6aa003931e883d20a2eb7e3c1aa",
+    "hash": "a2f631f8ecb3f0858df64a0c73ddf311db055bcc5fc759b05114a69ad1e9f8c5",
     "last_changed": "2026-11-21",
     "last_checked": "2026-11-21",
-    "rule_count": 5898
+    "rule_count": 5594
   },
   "easyprivacy": {
     "hash": "a97d9d4003be536ff8c671e7de0380213fa8377b895de8fb22185620297f146d",
